@@ -2,7 +2,7 @@ use std::{convert::TryFrom, ops::Deref};
 
 use quote::format_ident;
 use syn::{
-    spanned::Spanned, AngleBracketedGenericArguments, Expr, ExprLit,
+    spanned::Spanned, AngleBracketedGenericArguments, Expr, ExprLit, ExprPath,
     GenericArgument, Ident, Lit, Path, PathArguments, PathSegment, Type,
     TypeArray, TypePath, TypeTuple,
 };
@@ -295,6 +295,18 @@ fn len_from_expr(expr: &Expr) -> ParseResult<usize> {
                 }
             };
             Ok(size)
+        }
+        Expr::Path(ExprPath { path, .. }) => {
+            let ident = &path.segments.last().unwrap().ident;
+
+            if ident == "BLOCK_HASH_BYTES" {
+                return Ok(32);
+            }
+
+            Err(ParseError::new(
+                expr.span(),
+                &format!("Cannot resolve constant '{}'.", ident),
+            ))
         }
         _ => Err(ParseError::new(
             expr.span(),
